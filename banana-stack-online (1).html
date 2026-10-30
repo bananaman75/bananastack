@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BANANA STACK - ORCHARD ARCADE</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PeerJS for Cross-Device Direct P2P Multiplayer -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700&display=swap');
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #0b0f19;
+            color: #ffffff;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .font-arcade {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #facc15;
+            border-radius: 4px;
+        }
+
+        .neon-border {
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.3), inset 0 0 15px rgba(250, 204, 21, 0.15);
+        }
+
+        .neon-text-yellow {
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+        }
+
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+        }
+
+        .modal-box {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* BANANA STACK: original orchard-inspired visual theme */
+        body {
+            background: radial-gradient(circle at 15% 5%, #f7e8bd 0, transparent 34%),
+                        radial-gradient(circle at 85% 90%, #d8e8c8 0, transparent 38%),
+                        #f4f0df !important;
+            color: #283b2f !important;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .font-arcade { font-family: 'Rajdhani', sans-serif !important; font-weight: 700; letter-spacing: .08em; }
+        .neon-border { box-shadow: 0 8px 24px rgba(54, 83, 54, .13) !important; }
+        .neon-text-yellow, .neon-text-cyan { text-shadow: none !important; }
+        [class*="bg-slate-950"] { background-color: #263b30 !important; }
+        [class*="bg-slate-900"] { background-color: #fffdf4 !important; }
+        [class*="bg-slate-800"] { background-color: #e8edda !important; }
+        [class*="border-yellow-"] { border-color: #d1a84c !important; }
+        [class*="text-yellow-"] { color: #9b7424 !important; }
+        [class*="text-cyan-"] { color: #397e70 !important; }
+        [class*="text-slate-950"] { color: #263b30 !important; }
+        [class*="text-slate-400"] { color: #718174 !important; }
+        [class*="text-white"] { color: #283b2f !important; }
+        button { border-radius: 12px !important; transition: transform .15s ease, filter .15s ease; }
+        button:hover { filter: brightness(1.04); }
+        button:active { transform: translateY(1px); }
+        canvas { border-radius: 8px; }
+        .modal-box { background-color: #fffdf4; }
+    </style>
+</head>
+<body class="bg-slate-950 min-h-screen flex flex-col justify-start items-center p-2 sm:p-4 overflow-y-auto">
+
+    <!-- Header -->
+    <header class="w-full max-w-4xl text-center my-1 sm:my-2 shrink-0">
+        <h1 class="font-arcade text-xl sm:text-3xl text-yellow-400 neon-text-yellow tracking-wider flex items-center justify-center gap-2">
+            <span>🍌</span> BANANA STACK <span>🍃</span>
+        </h1>
+        <p class="text-[10px] sm:text-xs text-cyan-400 neon-text-cyan font-bold tracking-widest mt-0.5">ORCHARD ARCADE · PLAY, STACK & CHALLENGE</p>
+    </header>
+
+    <!-- Main App Container -->
+    <main id="app-container" class="w-full max-w-5xl flex flex-col items-center justify-start flex-1 mb-4">
+        
+        <!-- TITLE MENU SCREEN -->
+        <div id="screen-title" class="screen w-full max-w-md flex flex-col gap-2.5 p-4 bg-slate-900/90 border-2 border-yellow-500/50 rounded-xl neon-border">
+            <div class="flex justify-between items-center mb-1">
+                <h2 class="text-lg font-bold text-yellow-400">SELECT MODE</h2>
+                <button onclick="openRulesModal()" class="px-2 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/50 rounded text-yellow-400 font-bold text-xs flex items-center gap-1 transition-all">
+                    <span>※</span> RULES & SPECS
+                </button>
+            </div>
+            
+            <button onclick="startSoloGame()" class="w-full py-2.5 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 font-bold text-slate-950 rounded-lg text-base tracking-wider transition-all shadow-lg flex items-center justify-center gap-2">
+                <i data-lucide="user"></i> SOLO PLAY
+            </button>
+            
+            <button onclick="openAiSelectModal()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 font-bold text-white rounded-lg text-base tracking-wider transition-all shadow-lg flex items-center justify-center gap-2">
+                <i data-lucide="bot"></i> VS SMART AI (SRS)
+            </button>
+            
+            <button onclick="showScreen('screen-online-lobby')" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 font-bold text-white rounded-lg text-base tracking-wider transition-all shadow-lg flex items-center justify-center gap-2">
+                <i data-lucide="globe"></i> REAL MULTIPLAYER
+            </button>
+
+            <button onclick="openPrivateMatchModal()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 text-emerald-400 font-bold rounded-lg text-sm tracking-wider flex items-center justify-center gap-2">
+                <i data-lucide="key" class="w-4 h-4"></i> PRIVATE MATCH (ID CONNECT)
+            </button>
+            
+            <div class="grid grid-cols-2 gap-2 mt-1">
+                <button onclick="openLeaderboardModal()" class="py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                    <i data-lucide="trophy" class="text-yellow-400 w-4 h-4"></i> TOP 100
+                </button>
+                <button onclick="openControlsModal()" class="py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                    <i data-lucide="settings" class="text-cyan-400 w-4 h-4"></i> CONTROLS & ID
+                </button>
+            </div>
+        </div>
+
+        <!-- SOLO PLAY SCREEN -->
+        <div id="screen-solo" class="screen hidden w-full flex flex-col items-center">
+            <div class="flex flex-row gap-3 items-start justify-center w-full max-w-lg">
+                <div class="flex flex-col justify-start gap-3 w-24 sm:w-28 bg-slate-900/80 p-2 rounded-lg border border-slate-700 shrink-0">
+                    <div class="text-center">
+                        <span class="text-[10px] text-slate-400 font-bold">HOLD</span>
+                        <canvas id="solo-hold-canvas" width="60" height="60" class="mx-auto mt-1 bg-slate-950 rounded border border-slate-800"></canvas>
+                    </div>
+                    <div class="text-center flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold">SCORE</span>
+                        <span id="solo-score" class="text-sm font-bold text-yellow-400">0</span>
+                        <span class="text-[10px] text-slate-400 font-bold mt-1">LINES</span>
+                        <span id="solo-lines" class="text-xs font-bold text-cyan-400">0</span>
+                    </div>
+                </div>
+
+                <div class="relative shrink-0">
+                    <canvas id="solo-canvas" width="200" height="400" class="bg-slate-950 rounded-lg border-2 border-yellow-500/80 shadow-2xl max-h-[50vh] sm:max-h-[60vh] aspect-[1/2]"></canvas>
+                    
+                    <div id="solo-gameover" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center gap-3 hidden rounded-lg p-2 z-10">
+                        <h3 class="text-lg font-arcade text-red-500 neon-text-yellow">GAME OVER</h3>
+                        <p class="text-xs text-slate-300">SCORE: <span id="solo-final-score" class="text-yellow-400 font-bold">0</span></p>
+                        <button onclick="startSoloGame()" class="px-4 py-1.5 bg-yellow-500 text-slate-950 font-bold rounded text-xs hover:bg-yellow-400">RETRY</button>
+                        <button onclick="showScreen('screen-title')" class="px-4 py-1.5 bg-slate-800 text-white font-bold rounded text-xs hover:bg-slate-700">TITLE</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between gap-3 w-24 sm:w-28 bg-slate-900/80 p-2 rounded-lg border border-slate-700 shrink-0">
+                    <div class="text-center w-full">
+                        <span class="text-[10px] text-slate-400 font-bold">NEXT (5)</span>
+                        <canvas id="solo-next-canvas" width="60" height="220" class="mx-auto mt-1 bg-slate-950 rounded border border-slate-800"></canvas>
+                    </div>
+                    <button onclick="stopGame(); showScreen('screen-title');" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold rounded border border-slate-600">
+                        QUIT
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VS GAME SCREEN -->
+        <div id="screen-vs" class="screen hidden w-full flex flex-col items-center relative">
+            <div class="flex flex-row items-start justify-center gap-1.5 sm:gap-3 w-full max-w-4xl">
+                
+                <!-- Player Side Panels (HOLD) -->
+                <div class="flex flex-col gap-2 w-16 sm:w-20 bg-slate-900/80 p-1.5 rounded-lg border border-yellow-500/30 shrink-0 mt-6">
+                    <div class="text-center">
+                        <span class="text-[9px] text-yellow-400 font-bold">HOLD</span>
+                        <canvas id="vs-hold-canvas" width="50" height="50" class="mx-auto mt-1 bg-slate-950 rounded border border-slate-800"></canvas>
+                    </div>
+                </div>
+
+                <!-- P1 Board Canvas & Garbage Bar -->
+                <div class="flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border border-yellow-500/40 shrink-0">
+                    <span class="text-xs font-bold text-yellow-400 mb-1" id="p1-label">YOU</span>
+                    <canvas id="p1-canvas" width="160" height="320" class="bg-slate-950 rounded border border-slate-800 max-h-[45vh] aspect-[1/2]"></canvas>
+                    <div class="w-full mt-1.5 bg-slate-950 border border-slate-800 h-3 rounded overflow-hidden relative flex items-center justify-between px-1">
+                        <div id="p1-garbage-bar" class="bg-red-500 h-full absolute left-0 top-0 transition-all duration-300 opacity-80" style="width: 0%;"></div>
+                        <span class="text-[9px] text-slate-400 font-bold z-10">GARBAGE</span>
+                        <span id="p1-garbage-val" class="text-[9px] text-red-400 font-bold z-10">0 LINES</span>
+                    </div>
+                </div>
+
+                <!-- Player Side Panels (NEXT 5) -->
+                <div class="flex flex-col gap-2 w-16 sm:w-20 bg-slate-900/80 p-1.5 rounded-lg border border-yellow-500/30 shrink-0 mt-6">
+                    <div class="text-center">
+                        <span class="text-[9px] text-yellow-400 font-bold">NEXT (5)</span>
+                        <canvas id="vs-next-canvas" width="50" height="180" class="mx-auto mt-1 bg-slate-950 rounded border border-slate-800"></canvas>
+                    </div>
+                </div>
+
+                <div class="text-sm font-arcade text-yellow-400 flex flex-col items-center gap-1 mt-20">
+                    <span>VS</span>
+                </div>
+
+                <!-- P2 Side Panel (HOLD) -->
+                <div class="flex flex-col gap-2 w-16 sm:w-20 bg-slate-900/80 p-1.5 rounded-lg border border-cyan-500/30 shrink-0 mt-6">
+                    <div class="text-center">
+                        <span class="text-[9px] text-cyan-400 font-bold">HOLD</span>
+                        <canvas id="p2-hold-canvas" width="50" height="50" class="mx-auto mt-1 bg-slate-950 rounded border border-slate-800"></canvas>
+                    </div>
+                </div>
+
+                <!-- P2 Board Canvas & Garbage Bar -->
+                <div class="flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border border-cyan-500/40 shrink-0">
+                    <span class="text-xs font-bold text-cyan-400 mb-1" id="p2-label">OPPONENT</span>
+                    <canvas id="p2-canvas" width="160" height="320" class="bg-slate-950 rounded border border-slate-800 max-h-[45vh] aspect-[1/2]"></canvas>
+                    <div class="w-full mt-1.5 bg-slate-950 border border-slate-800 h-3 rounded overflow-hidden relative flex items-center justify-between px-1">
+                        <div id="p2-garbage-bar" class="bg-red-500 h-full absolute left-0 top-0 transition-all duration-300 opacity-80" style="width: 0%;"></div>
+                        <span class="text-[9px] text-slate-400 font-bold z-10">GARBAGE</span>
+                        <span id="p2-garbage-val" class="text-[9px] text-red-400 font-bold z-10">0 LINES</span>
+                    </div>
+                </div>
+
+                <!-- P2 Side Panel (NEXT 5) -->
+                <div class="flex flex-col gap-2 w-16 sm:w-20 bg-slate-900/80 p-1.5 rounded-lg border border-cyan-500/30 shrink-0 mt-6">
+                    <div class="text-center">
+                        <span class="text-[9px] text-cyan-400 font-bold">NEXT (5)</span>
+                        <canvas id="p2-next-canvas" width="50" height="180" class="mx-auto mt-1 bg-slate-950 rounded border border-slate-800"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 勝敗判定モーダル -->
+            <div id="vs-result-overlay" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center gap-4 hidden rounded-xl z-20">
+                <h3 id="vs-result-title" class="text-2xl sm:text-3xl font-arcade tracking-wider">VICTORY</h3>
+                <p id="vs-result-desc" class="text-xs text-slate-300 font-bold">YOU DEFEATED THE OPPONENT!</p>
+                <div class="flex gap-3">
+                    <button id="vs-retry-btn" onclick="retryVsGame()" class="px-5 py-2 bg-yellow-500 text-slate-950 font-bold rounded-lg text-xs hover:bg-yellow-400 shadow-lg">REMATCH</button>
+                    <button onclick="stopGame(); showScreen('screen-title')" class="px-5 py-2 bg-slate-800 text-white font-bold rounded-lg text-xs hover:bg-slate-700 border border-slate-600">TITLE</button>
+                </div>
+            </div>
+            
+            <button onclick="stopGame(); showScreen('screen-title');" class="mt-3 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-xs font-bold">
+                LEAVE MATCH
+            </button>
+        </div>
+
+        <!-- ONLINE LOBBY SCREEN -->
+        <div id="screen-online-lobby" class="screen hidden w-full max-w-md bg-slate-900/90 border-2 border-cyan-500/50 rounded-xl p-4 neon-border flex flex-col gap-3">
+            <h2 class="text-lg font-bold text-center text-cyan-400">REAL MULTIPLAYER</h2>
+            <p class="text-[10px] text-slate-400 text-center">※ 別のスマホ・PCのプレイヤーとリアルタイム対戦！</p>
+            
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center flex flex-col gap-1">
+                <span class="text-[10px] text-slate-400">YOUR PEER ID (あなたのID)</span>
+                <div class="flex items-center justify-center gap-2">
+                    <div id="my-peer-id-display" class="text-xs font-mono text-cyan-400 font-bold select-all bg-slate-900 px-2 py-1 rounded border border-slate-800">CONNECTING...</div>
+                    <button onclick="copyMyPeerId()" class="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-[10px] rounded">COPY</button>
+                </div>
+            </div>
+
+            <div id="matchmaking-status" class="hidden text-center py-2 bg-cyan-950/40 border border-cyan-500/30 rounded-lg">
+                <div class="inline-block animate-spin mr-2 text-cyan-400">🍌</div>
+                <span data-matchmaking-label class="text-xs text-cyan-300 font-bold animate-pulse">SEARCHING REAL PLAYER...</span>
+            </div>
+
+            <button id="btn-find-match" onclick="startOnlineMatchmaking()" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-lg text-base tracking-wider">
+                SEARCH PUBLIC MATCH
+            </button>
+
+            <button onclick="cancelMatchmaking(); showScreen('screen-title');" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-lg text-xs font-semibold">
+                BACK TO MENU
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODALS -->
+    <!-- RULES & SPECS MODAL -->
+    <div id="modal-rules" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-start pt-4 z-50 hidden">
+        <div class="modal-box w-full max-w-lg bg-slate-900 border-2 border-yellow-500/60 rounded-xl p-4 shadow-2xl flex flex-col gap-3 m-2">
+            <h3 class="text-base font-bold text-yellow-400 text-center flex items-center justify-center gap-2">
+                <span>※</span> RULES & BATTLE SPECS (対戦仕様解説)
+            </h3>
+            
+            <div class="flex flex-col gap-2 text-xs text-slate-300">
+                <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                    <span class="font-bold text-yellow-400">⚔️ お邪魔ブロック & 基本仕様</span>
+                    <ul class="list-disc list-inside mt-1 space-y-0.5 text-[11px] text-slate-400">
+                        <li><b class="text-white">お邪魔の穴消し:</b> 空いた一マスにミノが埋まれば通常通りライン消去。</li>
+                        <li><b class="text-white">1ライン消し:</b> 即時送信されずキープされ、次回消去時にまとめて送信。</li>
+                        <li><b class="text-white">Back to Back (B2B):</b> 4ライン同時消しまたはT-Spinを連続成功させると<b>火力+1ライン</b>！</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                    <span class="font-bold text-cyan-400">📊 FIREPOWER & DAMAGE TABLE (火力一覧表)</span>
+                    <div class="overflow-x-auto mt-1.5">
+                        <table class="w-full text-[10px] text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-yellow-400">
+                                    <th class="p-1">消去種類</th>
+                                    <th class="p-1">対人戦 (人 vs 人)</th>
+                                    <th class="p-1">VS AI (全難易度)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 text-slate-300">
+                                <tr>
+                                    <td class="p-1 font-bold">1ライン (Single)</td>
+                                    <td class="p-1">0 (キープ)</td>
+                                    <td class="p-1">0 (キープ)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">2ライン (Double)</td>
+                                    <td class="p-1 text-cyan-400 font-bold">1段</td>
+                                    <td class="p-1">1段</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">3ライン (Triple)</td>
+                                    <td class="p-1 text-cyan-400 font-bold">2段</td>
+                                    <td class="p-1 text-purple-400 font-bold">2段</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">4ライン同時消し</td>
+                                    <td class="p-1 text-cyan-400 font-bold">4段</td>
+                                    <td class="p-1 text-purple-400 font-bold">3段</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">T-Spin Single</td>
+                                    <td class="p-1">2段</td>
+                                    <td class="p-1 text-purple-400 font-bold">3段 (+1)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">T-Spin Double</td>
+                                    <td class="p-1">4段</td>
+                                    <td class="p-1 text-purple-400 font-bold">5段 (+1)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">T-Spin Triple</td>
+                                    <td class="p-1">6段</td>
+                                    <td class="p-1 text-purple-400 font-bold">7段 (+1)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">Back to Back (B2B)</td>
+                                    <td class="p-1 text-yellow-400 font-bold">+1段</td>
+                                    <td class="p-1 text-yellow-400 font-bold">+1段</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-1 font-bold">Perfect Clear (PC)</td>
+                                    <td class="p-1 text-yellow-400 font-bold">+2段</td>
+                                    <td class="p-1 text-yellow-400 font-bold">+2段</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeModal('modal-rules')" class="w-full py-1.5 bg-yellow-500 text-slate-950 font-bold rounded text-xs hover:bg-yellow-400">
+                CLOSE
+            </button>
+        </div>
+    </div>
+
+    <!-- PRIVATE MATCH MODAL -->
+    <div id="modal-private-match" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-start pt-4 z-50 hidden">
+        <div class="modal-box w-full max-w-sm bg-slate-900 border-2 border-emerald-500/60 rounded-xl p-4 shadow-2xl flex flex-col gap-3 m-2">
+            <h3 class="text-base font-bold text-emerald-400 text-center flex items-center justify-center gap-2">
+                <i data-lucide="key" class="w-4 h-4"></i> PRIVATE MATCH (CONNECT BY ID)
+            </h3>
+            
+            <button onclick="createPrivateRoom()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 font-bold text-slate-950 rounded text-xs transition-all">
+                CREATE PRIVATE ROOM（部屋を作る）
+            </button>
+
+            <div class="border-t border-slate-700 pt-3 flex flex-col gap-2">
+                <label class="text-xs text-slate-300">ROOM HOST'S ID（部屋を作った友達のID）:</label>
+                <input type="text" id="private-room-key" placeholder="友達から教えてもらったID" class="px-3 py-2 bg-slate-950 border border-slate-700 rounded text-sm text-yellow-400 font-mono tracking-wider focus:outline-none focus:border-emerald-500">
+                <button onclick="joinPrivateRoom()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 font-bold text-white rounded text-xs transition-all">
+                    JOIN PRIVATE ROOM（部屋に参加）
+                </button>
+            </div>
+
+            <button onclick="closeModal('modal-private-match')" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs">
+                CANCEL
+            </button>
+        </div>
+    </div>
+
+    <!-- CONTROLS & ID CONFIG MODAL -->
+    <div id="modal-controls" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-start pt-4 z-50 hidden">
+        <div class="modal-box w-full max-w-md bg-slate-900 border-2 border-cyan-500/60 rounded-xl p-4 shadow-2xl flex flex-col gap-3 m-2">
+            <h3 class="text-base font-bold text-cyan-400 text-center flex items-center justify-center gap-2">
+                <i data-lucide="settings" class="w-4 h-4"></i> CONTROLS & YOUR ID
+            </h3>
+
+            <!-- ID Display Banner -->
+            <div class="bg-slate-950 p-2.5 rounded border border-cyan-500/40 flex justify-between items-center">
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-slate-400 font-bold">YOUR PEER ID (あなたのID):</span>
+                    <span id="config-peer-id" class="text-xs font-mono font-bold text-yellow-400">CONNECTING...</span>
+                </div>
+                <button onclick="copyMyPeerId()" class="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded transition-all">
+                    COPY ID
+                </button>
+            </div>
+            
+            <div class="flex flex-col gap-1.5 text-xs">
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Move Left</span>
+                    <button onclick="remapKey('left')" id="key-left" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">ArrowLeft</button>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Move Right</span>
+                    <button onclick="remapKey('right')" id="key-right" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">ArrowRight</button>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Soft Drop</span>
+                    <button onclick="remapKey('softDrop')" id="key-softDrop" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">ArrowDown</button>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Hard Drop</span>
+                    <button onclick="remapKey('hardDrop')" id="key-hardDrop" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">Space</button>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Rotate CW</span>
+                    <button onclick="remapKey('rotCW')" id="key-rotCW" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">ArrowUp</button>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Rotate CCW</span>
+                    <button onclick="remapKey('rotCCW')" id="key-rotCCW" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">KeyZ</button>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-slate-950 rounded border border-slate-800">
+                    <span class="text-slate-300">Hold Piece</span>
+                    <button onclick="remapKey('hold')" id="key-hold" class="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-yellow-400 font-mono text-[11px] min-w-[70px]">KeyC</button>
+                </div>
+            </div>
+
+            <button onclick="closeModal('modal-controls')" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 font-bold text-slate-950 rounded text-xs transition-all mt-1">
+                SAVE & CLOSE
+            </button>
+        </div>
+    </div>
+
+    <!-- AI DIFFICULTY SELECT MODAL -->
+    <div id="modal-ai-select" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-start pt-4 z-50 hidden">
+        <div class="modal-box w-full max-w-sm bg-slate-900 border-2 border-purple-500/60 rounded-xl p-4 shadow-2xl flex flex-col gap-3 m-2">
+            <h3 class="text-base font-bold text-purple-400 text-center">SELECT AI DIFFICULTY</h3>
+            
+            <button onclick="startAiGame('EASY')" class="py-2.5 bg-slate-800 hover:bg-purple-900/50 border border-purple-500/40 rounded flex flex-col items-center">
+                <span class="font-bold text-purple-300 text-xs">EASY</span>
+                <span class="text-[10px] text-slate-400">標準思考 (攻撃力新テーブル適用)</span>
+            </button>
+            <button onclick="startAiGame('NORMAL')" class="py-2.5 bg-slate-800 hover:bg-purple-900/50 border border-purple-500/40 rounded flex flex-col items-center">
+                <span class="font-bold text-yellow-300 text-xs">NORMAL</span>
+                <span class="text-[10px] text-slate-400">高精度SRSヒューリスティック (新テーブル適用)</span>
+            </button>
+            <button onclick="startAiGame('HARD')" class="py-2.5 bg-slate-800 hover:bg-purple-900/50 border border-purple-500/40 rounded flex flex-col items-center">
+                <span class="font-bold text-red-400 text-xs">HARD (GRANDMASTER)</span>
+                <span class="text-[10px] text-slate-400">超高速最適解 (新テーブル適用)</span>
+            </button>
+
+            <button onclick="closeModal('modal-ai-select')" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs mt-1">
+                CANCEL
+            </button>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD MODAL -->
+    <div id="modal-leaderboard" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-start pt-4 z-50 hidden">
+        <div class="modal-box w-full max-w-md bg-slate-900 border-2 border-yellow-500/60 rounded-xl p-4 shadow-2xl flex flex-col gap-3 m-2">
+            <h3 class="text-base font-bold text-yellow-400 text-center flex items-center justify-center gap-2">
+                <i data-lucide="trophy" class="w-4 h-4"></i> TOP 100 LEADERBOARD
+            </h3>
+
+            <div class="flex gap-2 border-b border-slate-800 pb-2">
+                <button onclick="renderLeaderboard('solo')" id="tab-lb-solo" class="flex-1 py-1 bg-yellow-500 text-slate-950 font-bold rounded text-xs">SOLO SCORES</button>
+                <button onclick="renderLeaderboard('online')" id="tab-lb-online" class="flex-1 py-1 bg-slate-800 text-slate-400 font-bold rounded text-xs">ONLINE RATINGS</button>
+            </div>
+
+            <div id="leaderboard-list" class="flex flex-col gap-1 max-h-48 overflow-y-auto p-1 bg-slate-950 rounded border border-slate-800 text-xs">
+            </div>
+
+            <button onclick="closeModal('modal-leaderboard')" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs">
+                CLOSE
+            </button>
+        </div>
+    </div>
+
+    <!-- ENGINE LOGIC -->
+    <script>
+        if (window.lucide) lucide.createIcons();
+
+        function showScreen(screenId) {
+            stopGame();
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            const target = document.getElementById(screenId);
+            if (target) target.classList.remove('hidden');
+        }
+
+        function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+        function openRulesModal() { openModal('modal-rules'); }
+        function openControlsModal() { openModal('modal-controls'); }
+        function openAiSelectModal() { openModal('modal-ai-select'); }
+        function openPrivateMatchModal() { openModal('modal-private-match'); }
+        function openLeaderboardModal() { renderLeaderboard('solo'); openModal('modal-leaderboard'); }
+
+        // --- KEY CONFIG & CONTINUOUS INPUT ---
+        let keyBinds = JSON.parse(localStorage.getItem('banana_keybinds')) || {
+            left: 'ArrowLeft',
+            right: 'ArrowRight',
+            softDrop: 'ArrowDown',
+            hardDrop: 'Space',
+            rotCW: 'ArrowUp',
+            rotCCW: 'KeyZ',
+            hold: 'KeyC'
+        };
+
+        let keysDown = {};
+        let keyTimers = {};
+        const DAS_DELAY = 140;
+        const ARR_RATE = 35;
+        const SOFT_DROP_RATE = 60;
+
+        function updateKeyDisplay() {
+            for (let action in keyBinds) {
+                const btn = document.getElementById(`key-${action}`);
+                if (btn) btn.innerText = keyBinds[action];
+            }
+        }
+        updateKeyDisplay();
+
+        let remappingAction = null;
+        function remapKey(action) {
+            remappingAction = action;
+            const btn = document.getElementById(`key-${action}`);
+            if (btn) {
+                btn.innerText = "PRESS KEY...";
+                btn.classList.add('animate-pulse', 'text-cyan-400');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (remappingAction) {
+                e.preventDefault();
+                keyBinds[remappingAction] = e.code;
+                localStorage.setItem('banana_keybinds', JSON.stringify(keyBinds));
+                remappingAction = null;
+                updateKeyDisplay();
+                return;
+            }
+
+            if (keysDown[e.code]) return;
+            keysDown[e.code] = true;
+
+            handleSingleAction(e.code);
+
+            if ([keyBinds.left, keyBinds.right].includes(e.code)) {
+                keyTimers[e.code] = setTimeout(() => {
+                    keyTimers[e.code + '_repeat'] = setInterval(() => {
+                        handleSingleAction(e.code);
+                    }, ARR_RATE);
+                }, DAS_DELAY);
+            }
+            else if (e.code === keyBinds.softDrop) {
+                keyTimers[e.code + '_repeat'] = setInterval(() => {
+                    handleSingleAction(e.code);
+                }, SOFT_DROP_RATE);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            delete keysDown[e.code];
+            if (keyTimers[e.code]) clearTimeout(keyTimers[e.code]);
+            if (keyTimers[e.code + '_repeat']) clearInterval(keyTimers[e.code + '_repeat']);
+            delete keyTimers[e.code];
+            delete keyTimers[e.code + '_repeat'];
+        });
+
+        // --- SRS WALL KICK TABLES ---
+        const KICK_TABLE_JLSTZ = {
+            '0-1': [[0,0], [-1,0], [-1,1], [0,-2], [-1,-2]],
+            '1-0': [[0,0], [1,0], [1,-1], [0,2], [1,2]],
+            '1-2': [[0,0], [1,0], [1,-1], [0,2], [1,2]],
+            '2-1': [[0,0], [-1,0], [-1,1], [0,-2], [-1,-2]],
+            '2-3': [[0,0], [1,0], [1,1], [0,-2], [1,-2]],
+            '3-2': [[0,0], [-1,0], [-1,-1], [0,2], [-1,2]],
+            '3-0': [[0,0], [-1,0], [-1,-1], [0,2], [-1,2]],
+            '0-3': [[0,0], [1,0], [1,1], [0,-2], [1,-2]]
+        };
+
+        const KICK_TABLE_I = {
+            '0-1': [[0,0], [-2,0], [1,0], [-2,-1], [1,2]],
+            '1-0': [[0,0], [2,0], [-1,0], [2,1], [-1,-2]],
+            '1-2': [[0,0], [-1,0], [2,0], [-1,2], [2,-1]],
+            '2-1': [[0,0], [1,0], [-2,0], [1,-2], [-2,1]],
+            '2-3': [[0,0], [2,0], [-1,0], [2,1], [-1,-2]],
+            '3-2': [[0,0], [-2,0], [1,0], [-2,-1], [1,2]],
+            '3-0': [[0,0], [1,0], [-2,0], [1,-2], [-2,1]],
+            '0-3': [[0,0], [-1,0], [2,0], [-1,2], [2,-1]]
+        };
+
+        // --- BANANA STACK GAME ENGINE ---
+        const COLS = 10, ROWS = 20;
+        const SHAPES = {
+            I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+            J: [[1,0,0],[1,1,1],[0,0,0]],
+            L: [[0,0,1],[1,1,1],[0,0,0]],
+            O: [[1,1],[1,1]],
+            S: [[0,1,1],[1,1,0],[0,0,0]],
+            T: [[0,1,0],[1,1,1],[0,0,0]],
+            Z: [[1,1,0],[0,1,1],[0,0,0]]
+        };
+        const COLORS = { I: '#3A8F7B', J: '#8874C6', L: '#E38B4F', O: '#E7C65B', S: '#78A85C', T: '#C46D89', Z: '#D66F5D' };
+
+        let p1Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+        let p2Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+        
+        let p1Bag = [], p2Bag = [];
+        let activePiece = null;
+        let aiPiece = null;
+        let p2ActivePiece = null; // 相手の落下中ミノ
+
+        let holdPieceType = null;
+        let p2HoldPieceType = null; // 相手のHOLD
+        let canHold = true;
+
+        let lockDelayTimer = null;
+        let lockResetCount = 0;
+        const LOCK_DELAY_MS = 500;
+        const MAX_LOCK_RESETS = 15;
+
+        let gameLoop = null;
+        let aiLoop = null;
+        let aiDiff = 'NORMAL';
+        let score = 0, lines = 0;
+        let p1ComboCount = 0;
+        let aiComboCount = 0;
+        let p1B2bActive = false;
+        let aiB2bActive = false;
+        let p1LastMoveWasRotate = false;
+
+        let isRunning = false;
+        let currentMode = 'SOLO';
+
+        let p1GarbageQueue = 0;
+        let p2GarbageQueue = 0;
+        let p1SingleLineStash = 0;
+        let p2SingleLineStash = 0;
+
+        // PEERJS & REAL-TIME NETWORKING
+        let peer = null;
+        let peerConn = null;
+        let myPeerId = null;
+        let broadChannel = null;
+        let isMatched = false;
+        let onlinePingTimer = null;
+        let matchmakingSocket = null;
+        let privateMatchMode = false;
+        let privateRoomHost = false;
+        let privateLocalReady = false;
+        let privateRemoteReady = false;
+        let privateCountdownTimer = null;
+        let privateCountdownStarted = false;
+        // Render等にデプロイした matchmaking-server の WebSocket URL を設定してください。
+        // 例: wss://banana-tetris-matchmaking.onrender.com
+        const MATCHMAKING_SERVER_URL = 'wss://YOUR-MATCHMAKING-SERVER.onrender.com';
+
+        function initPeerJS() {
+            if (peer) return;
+            // IDはPeerJSサーバーに発行させ、短い乱数IDの衝突を避ける。
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                myPeerId = id;
+                const el1 = document.getElementById('my-peer-id-display');
+                const el2 = document.getElementById('config-peer-id');
+                if (el1) el1.innerText = id;
+                if (el2) el2.innerText = id;
+            });
+
+            peer.on('connection', (conn) => {
+                // 相手側（またはプライベート対戦の受け手）が接続してきた場合。
+                if (peerConn && peerConn.open) {
+                    conn.close();
+                    return;
+                }
+                peerConn = conn;
+                setupPeerEvents();
+            });
+
+            peer.on('error', (err) => {
+                console.warn('PeerJS Connection notice:', err);
+                setMatchmakingMessage('通信エラー: ' + (err.type || '接続に失敗しました'));
+            });
+        }
+        initPeerJS();
+
+        function copyMyPeerId() {
+            if (!myPeerId) return alert('ID取得中...');
+            navigator.clipboard.writeText(myPeerId).then(() => {
+                alert('あなたのPEER IDをコピーしました: ' + myPeerId);
+            }).catch(() => {
+                alert('コピー機能が利用できません。手動でコピーしてください: ' + myPeerId);
+            });
+        }
+
+        function setupPeerEvents() {
+            if (!peerConn) return;
+            peerConn.on('open', () => {
+                if (privateMatchMode) {
+                    privateLocalReady = true;
+                    setMatchmakingMessage('接続完了。友達の準備を確認しています...');
+                    sendNetworkData({ type: 'PRIVATE_READY' });
+                } else {
+                    // 公開マッチングでは従来どおり接続確認を行う。
+                    sendNetworkData({ type: 'PING' });
+                }
+            });
+            peerConn.on('data', (data) => handleNetworkMessage(data));
+            peerConn.on('close', () => {
+                if (isRunning) showVsResult(true);
+                else setMatchmakingMessage('相手との接続が切れました。もう一度お試しください。');
+            });
+            peerConn.on('error', (err) => {
+                console.warn('PeerJS data connection error:', err);
+                setMatchmakingMessage('相手との接続に失敗しました。');
+            });
+        }
+
+        function handleNetworkMessage(data) {
+            if (!data) return;
+            if (data.type === 'PRIVATE_READY' && privateMatchMode) {
+                privateRemoteReady = true;
+                setMatchmakingMessage('2人とも部屋に入りました。まもなく開始します...');
+                if (privateRoomHost && privateLocalReady && !privateCountdownStarted) {
+                    const startAt = Date.now() + 3000;
+                    sendNetworkData({ type: 'PRIVATE_COUNTDOWN', startAt });
+                    startPrivateCountdown(startAt);
+                }
+            } else if (data.type === 'PRIVATE_COUNTDOWN' && privateMatchMode) {
+                startPrivateCountdown(Number(data.startAt) || (Date.now() + 3000));
+            } else if (data.type === 'PING') {
+                sendNetworkData({ type: 'PONG' });
+                if (!isMatched) startMatchedOnlineGame();
+            } else if (data.type === 'PONG') {
+                if (!isMatched) startMatchedOnlineGame();
+            } else if (data.type === 'STATE_UPDATE') {
+                // 対戦相手の全状態（盤面・落下中ミノ・HOLD・NEXT）を同期・反映
+                p2Board = data.board;
+                p2ActivePiece = data.activePiece;
+                p2HoldPieceType = data.holdPiece;
+                if (data.nextBag) p2Bag = data.nextBag;
+
+                drawCanvas('p2-canvas', p2Board, p2ActivePiece);
+                drawP2HoldCanvas();
+                drawP2NextCanvas();
+            } else if (data.type === 'ATTACK') {
+                p1GarbageQueue += data.amount;
+                updateGarbageBars();
+            } else if (data.type === 'KNOCKOUT') {
+                showVsResult(true);
+            }
+        }
+
+        function sendNetworkData(data) {
+            if (peerConn && peerConn.open) {
+                peerConn.send(data);
+            }
+            if (broadChannel) {
+                broadChannel.postMessage(data);
+            }
+        }
+
+        // 自分の全状態をリアルタイム送信する関数
+        function broadcastMyState() {
+            if (currentMode === 'ONLINE' && isMatched) {
+                sendNetworkData({
+                    type: 'STATE_UPDATE',
+                    board: p1Board,
+                    activePiece: activePiece,
+                    holdPiece: holdPieceType,
+                    nextBag: p1Bag.slice(0, 5)
+                });
+            }
+        }
+
+        function clearLockDelay() {
+            if (lockDelayTimer) {
+                clearTimeout(lockDelayTimer);
+                lockDelayTimer = null;
+            }
+        }
+
+        function getNextFromBag(bagArray) {
+            if (bagArray.length <= 7) {
+                const keys = Object.keys(SHAPES);
+                for (let i = keys.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [keys[i], keys[j]] = [keys[j], keys[i]];
+                }
+                bagArray.push(...keys);
+            }
+            return bagArray.shift();
+        }
+
+        function createPiece(type) {
+            return {
+                type: type,
+                shape: SHAPES[type],
+                color: COLORS[type],
+                x: Math.floor((COLS - SHAPES[type][0].length) / 2),
+                y: 0,
+                rotation: 0
+            };
+        }
+
+        function spawnPiece() {
+            clearLockDelay();
+            lockResetCount = 0;
+            p1LastMoveWasRotate = false;
+
+            if (p1GarbageQueue > 0 && currentMode !== 'SOLO') {
+                applyGarbageLines(p1Board, p1GarbageQueue);
+                p1GarbageQueue = 0;
+                updateGarbageBars();
+            }
+
+            const type = getNextFromBag(p1Bag);
+            activePiece = createPiece(type);
+            canHold = true;
+
+            drawNextCanvases();
+
+            if (checkCollision(p1Board, activePiece.x, activePiece.y, activePiece.shape)) {
+                stopGame();
+                if (currentMode === 'SOLO') {
+                    saveScore(score);
+                    document.getElementById('solo-final-score').innerText = score;
+                    document.getElementById('solo-gameover').classList.remove('hidden');
+                } else if (currentMode === 'ONLINE') {
+                    sendNetworkData({ type: 'KNOCKOUT' });
+                    showVsResult(false);
+                } else {
+                    showVsResult(false);
+                }
+            }
+
+            broadcastMyState();
+        }
+
+        function holdPiece() {
+            if (!isRunning || !activePiece || !canHold) return;
+            clearLockDelay();
+
+            if (holdPieceType === null) {
+                holdPieceType = activePiece.type;
+                spawnPiece();
+            } else {
+                const temp = activePiece.type;
+                activePiece = createPiece(holdPieceType);
+                holdPieceType = temp;
+            }
+
+            canHold = false;
+            drawHoldCanvases();
+            if (currentMode === 'SOLO') drawCanvas('solo-canvas', p1Board, activePiece);
+            else drawCanvas('p1-canvas', p1Board, activePiece);
+
+            broadcastMyState();
+        }
+
+        function drawHoldCanvases() {
+            const ids = ['solo-hold-canvas', 'vs-hold-canvas'];
+            ids.forEach(id => {
+                const canvas = document.getElementById(id);
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#090d16';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (holdPieceType) {
+                    const shape = SHAPES[holdPieceType];
+                    ctx.fillStyle = COLORS[holdPieceType];
+                    const cw = id.includes('vs') ? 8 : 10;
+                    const offsetX = (canvas.width - shape[0].length * cw) / 2;
+                    const offsetY = (canvas.height - shape.length * cw) / 2;
+
+                    shape.forEach((row, r) => {
+                        row.forEach((val, c) => {
+                            if (val) ctx.fillRect(offsetX + c * cw, offsetY + r * cw, cw - 1, cw - 1);
+                        });
+                    });
+                }
+            });
+        }
+
+        function drawP2HoldCanvas() {
+            const canvas = document.getElementById('p2-hold-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (p2HoldPieceType) {
+                const shape = SHAPES[p2HoldPieceType];
+                ctx.fillStyle = COLORS[p2HoldPieceType];
+                const cw = 8;
+                const offsetX = (canvas.width - shape[0].length * cw) / 2;
+                const offsetY = (canvas.height - shape.length * cw) / 2;
+
+                shape.forEach((row, r) => {
+                    row.forEach((val, c) => {
+                        if (val) ctx.fillRect(offsetX + c * cw, offsetY + r * cw, cw - 1, cw - 1);
+                    });
+                });
+            }
+        }
+
+        function drawNextCanvases() {
+            const targets = [
+                { id: 'solo-next-canvas', cw: 10, step: 42 },
+                { id: 'vs-next-canvas', cw: 8, step: 34 }
+            ];
+
+            targets.forEach(target => {
+                const canvas = document.getElementById(target.id);
+                if (!canvas || p1Bag.length === 0) return;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#090d16';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                for (let i = 0; i < 5; i++) {
+                    const type = p1Bag[i];
+                    if (!type) continue;
+                    const shape = SHAPES[type];
+                    ctx.fillStyle = COLORS[type];
+                    
+                    const offsetX = (canvas.width - shape[0].length * target.cw) / 2;
+                    const offsetY = 6 + i * target.step;
+
+                    shape.forEach((row, r) => {
+                        row.forEach((val, c) => {
+                            if (val) ctx.fillRect(offsetX + c * target.cw, offsetY + r * target.cw, target.cw - 1, target.cw - 1);
+                        });
+                    });
+                }
+            });
+        }
+
+        function drawP2NextCanvas() {
+            const canvas = document.getElementById('p2-next-canvas');
+            if (!canvas || p2Bag.length === 0) return;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cw = 8, step = 34;
+            for (let i = 0; i < 5; i++) {
+                const type = p2Bag[i];
+                if (!type) continue;
+                const shape = SHAPES[type];
+                ctx.fillStyle = COLORS[type];
+                
+                const offsetX = (canvas.width - shape[0].length * cw) / 2;
+                const offsetY = 6 + i * step;
+
+                shape.forEach((row, r) => {
+                    row.forEach((val, c) => {
+                        if (val) ctx.fillRect(offsetX + c * cw, offsetY + r * cw, cw - 1, cw - 1);
+                    });
+                });
+            }
+        }
+
+        function checkCollision(targetBoard, x, y, shape) {
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c]) {
+                        let newX = x + c;
+                        let newY = y + r;
+                        if (newX < 0 || newX >= COLS || newY >= ROWS) return true;
+                        if (newY >= 0 && targetBoard[newY][newX]) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function isTSpin(piece, targetBoard) {
+            if (piece.type !== 'T' || !p1LastMoveWasRotate) return false;
+            let corners = 0;
+            const cx = piece.x + 1;
+            const cy = piece.y + 1;
+            const checkCorners = [[cx-1, cy-1], [cx+1, cy-1], [cx-1, cy+1], [cx+1, cy+1]];
+            
+            checkCorners.forEach(([x, y]) => {
+                if (x < 0 || x >= COLS || y >= ROWS || (y >= 0 && targetBoard[y][x])) {
+                    corners++;
+                }
+            });
+            return corners >= 3;
+        }
+
+        function rotateSrs(piece, dir, targetBoard) {
+            const oldRot = piece.rotation;
+            const newRot = (oldRot + dir + 4) % 4;
+            
+            let newShape;
+            if (dir === 1) {
+                newShape = piece.shape[0].map((_, index) => piece.shape.map(row => row[index]).reverse());
+            } else {
+                newShape = piece.shape[0].map((_, index) => piece.shape.map(row => row[row.length - 1 - index]));
+            }
+
+            const table = (piece.type === 'I') ? KICK_TABLE_I : KICK_TABLE_JLSTZ;
+            const key = `${oldRot}-${newRot}`;
+            const kicks = (piece.type === 'O') ? [[0,0]] : (table[key] || [[0,0]]);
+
+            for (let i = 0; i < kicks.length; i++) {
+                const [kx, ky] = kicks[i];
+                if (!checkCollision(targetBoard, piece.x + kx, piece.y - ky, newShape)) {
+                    piece.x += kx;
+                    piece.y -= ky;
+                    piece.shape = newShape;
+                    piece.rotation = newRot;
+                    p1LastMoveWasRotate = true;
+                    
+                    if (lockResetCount < MAX_LOCK_RESETS) {
+                        lockResetCount++;
+                        clearLockDelay();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function mergePiece() {
+            clearLockDelay();
+            activePiece.shape.forEach((row, r) => {
+                row.forEach((value, c) => {
+                    if (value) p1Board[activePiece.y + r][activePiece.x + c] = activePiece.color;
+                });
+            });
+            clearLines(p1Board, true);
+            spawnPiece();
+        }
+
+        function calculateGarbageSent(linesCleared, isPerfectClear, currentRen, isTSpinType, isB2b, isAiTarget) {
+            let garbage = 0;
+
+            if (isAiTarget) {
+                if (isTSpinType) {
+                    if (linesCleared === 1) garbage = 3;
+                    else if (linesCleared === 2) garbage = 5;
+                    else if (linesCleared === 3) garbage = 7;
+                } else {
+                    if (linesCleared === 2) garbage = 1;
+                    else if (linesCleared === 3) garbage = 2;
+                    else if (linesCleared === 4) garbage = 3;
+                }
+            } else {
+                if (isTSpinType) {
+                    if (linesCleared === 1) garbage = 2;
+                    else if (linesCleared === 2) garbage = 4;
+                    else if (linesCleared === 3) garbage = 6;
+                } else {
+                    if (linesCleared === 2) garbage = 1;      // 2ライン=1段
+                    else if (linesCleared === 3) garbage = 2; // 3ライン=2段
+                    else if (linesCleared === 4) garbage = 4; // テトリス=4段
+                }
+            }
+
+            if (isB2b && (linesCleared === 4 || isTSpinType)) garbage += 1;
+            if (isPerfectClear) garbage += 2;
+            if (currentRen === 2) garbage += 1;
+            else if (currentRen === 3) garbage += 2;
+            else if (currentRen >= 4) garbage += 3;
+
+            return garbage;
+        }
+
+        function clearLines(targetBoard, isP1) {
+            let cleared = 0;
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (targetBoard[r].every(cell => cell !== 0)) {
+                    targetBoard.splice(r, 1);
+                    targetBoard.unshift(Array(COLS).fill(0));
+                    cleared++;
+                    r++;
+                }
+            }
+
+            if (cleared > 0) {
+                if (isP1) {
+                    p1ComboCount++;
+                    lines += cleared;
+                    score += cleared * 100 * cleared;
+
+                    const tspin = isTSpin(activePiece, targetBoard);
+                    const isDifficult = (cleared === 4 || tspin);
+                    const isB2b = p1B2bActive && isDifficult;
+                    p1B2bActive = isDifficult;
+
+                    let garbage = calculateGarbageSent(
+                        cleared,
+                        targetBoard.every(row => row.every(cell => cell === 0)),
+                        p1ComboCount,
+                        tspin,
+                        isB2b,
+                        (currentMode === 'AI')
+                    );
+
+                    if (cleared === 1 && !tspin) {
+                        p1SingleLineStash += 1;
+                    } else {
+                        garbage += p1SingleLineStash;
+                        p1SingleLineStash = 0;
+                    }
+
+                    if (currentMode !== 'SOLO' && garbage > 0) {
+                        if (currentMode === 'ONLINE') {
+                            sendNetworkData({
+                                type: 'ATTACK',
+                                amount: garbage
+                            });
+                        } else {
+                            if (p1GarbageQueue > 0) {
+                                const offset = Math.min(p1GarbageQueue, garbage);
+                                p1GarbageQueue -= offset;
+                                const remain = garbage - offset;
+                                if (remain > 0) p2GarbageQueue += remain;
+                            } else {
+                                p2GarbageQueue += garbage;
+                            }
+                            updateGarbageBars();
+                        }
+                    }
+
+                    document.getElementById('solo-score').innerText = score;
+                    document.getElementById('solo-lines').innerText = lines;
+                } else {
+                    aiComboCount++;
+                    const isDifficult = (cleared === 4);
+                    const isB2b = aiB2bActive && isDifficult;
+                    aiB2bActive = isDifficult;
+
+                    let garbage = calculateGarbageSent(
+                        cleared,
+                        targetBoard.every(row => row.every(cell => cell === 0)),
+                        aiComboCount,
+                        false,
+                        isB2b,
+                        true
+                    );
+
+                    if (cleared === 1) {
+                        p2SingleLineStash += 1;
+                    } else {
+                        garbage += p2SingleLineStash;
+                        p2SingleLineStash = 0;
+                    }
+
+                    if (garbage > 0) {
+                        if (p2GarbageQueue > 0) {
+                            const offset = Math.min(p2GarbageQueue, garbage);
+                            p2GarbageQueue -= offset;
+                            const remain = garbage - offset;
+                            if (remain > 0) p1GarbageQueue += remain;
+                        } else {
+                            p1GarbageQueue += garbage;
+                        }
+                        updateGarbageBars();
+                    }
+                }
+            } else {
+                if (isP1) p1ComboCount = 0;
+                else aiComboCount = 0;
+            }
+        }
+
+        function applyGarbageLines(targetBoard, count) {
+            for (let i = 0; i < count; i++) {
+                targetBoard.shift();
+                const gap = Math.floor(Math.random() * COLS);
+                const garbageRow = Array(COLS).fill('#475569');
+                garbageRow[gap] = 0;
+                targetBoard.push(garbageRow);
+            }
+        }
+
+        function updateGarbageBars() {
+            const bar1 = document.getElementById('p1-garbage-bar');
+            const bar2 = document.getElementById('p2-garbage-bar');
+            const val1 = document.getElementById('p1-garbage-val');
+            const val2 = document.getElementById('p2-garbage-val');
+
+            if (bar1) bar1.style.width = `${Math.min(100, p1GarbageQueue * 10)}%`;
+            if (bar2) bar2.style.width = `${Math.min(100, p2GarbageQueue * 10)}%`;
+            if (val1) val1.innerText = `${p1GarbageQueue} LINES`;
+            if (val2) val2.innerText = `${p2GarbageQueue} LINES`;
+        }
+
+        function drawCanvas(canvasId, targetBoard, piece) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cw = canvas.width / COLS;
+            const ch = canvas.height / ROWS;
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (targetBoard[r][c]) {
+                        ctx.fillStyle = targetBoard[r][c];
+                        ctx.fillRect(c * cw, r * ch, cw - 1, ch - 1);
+                    }
+                }
+            }
+
+            if (piece) {
+                ctx.fillStyle = piece.color;
+                piece.shape.forEach((row, r) => {
+                    row.forEach((value, c) => {
+                        if (value) ctx.fillRect((piece.x + c) * cw, (piece.y + r) * ch, cw - 1, ch - 1);
+                    });
+                });
+            }
+        }
+
+        function update() {
+            if (!activePiece) return;
+            if (!checkCollision(p1Board, activePiece.x, activePiece.y + 1, activePiece.shape)) {
+                activePiece.y++;
+                p1LastMoveWasRotate = false;
+                clearLockDelay();
+            } else {
+                if (!lockDelayTimer) {
+                    lockDelayTimer = setTimeout(() => {
+                        if (checkCollision(p1Board, activePiece.x, activePiece.y + 1, activePiece.shape)) {
+                            mergePiece();
+                        }
+                    }, LOCK_DELAY_MS);
+                }
+            }
+            if (currentMode === 'SOLO') drawCanvas('solo-canvas', p1Board, activePiece);
+            else drawCanvas('p1-canvas', p1Board, activePiece);
+
+            broadcastMyState();
+        }
+
+        function startSoloGame() {
+            currentMode = 'SOLO';
+            showScreen('screen-solo');
+            p1Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            p1Bag = []; score = 0; lines = 0; p1ComboCount = 0; p1SingleLineStash = 0;
+            p1B2bActive = false; holdPieceType = null; canHold = true; clearLockDelay();
+            drawHoldCanvases();
+
+            document.getElementById('solo-score').innerText = 0;
+            document.getElementById('solo-lines').innerText = 0;
+            document.getElementById('solo-gameover').classList.add('hidden');
+            
+            spawnPiece();
+            isRunning = true;
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 500);
+            drawCanvas('solo-canvas', p1Board, activePiece);
+        }
+
+        // --- HEURISTIC AI & VS RESULT DISPLAY ---
+        function startAiGame(diff) {
+            currentMode = 'AI';
+            aiDiff = diff;
+            closeModal('modal-ai-select');
+            document.getElementById('p1-label').innerText = "YOU";
+            document.getElementById('p2-label').innerText = `AI (${diff})`;
+            document.getElementById('vs-result-overlay').classList.add('hidden');
+            showScreen('screen-vs');
+
+            p1Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            p2Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            p1Bag = []; p2Bag = [];
+            p1GarbageQueue = 0; p2GarbageQueue = 0;
+            p1SingleLineStash = 0; p2SingleLineStash = 0;
+            p1ComboCount = 0; aiComboCount = 0;
+            p1B2bActive = false; aiB2bActive = false;
+            holdPieceType = null; canHold = true; clearLockDelay();
+            drawHoldCanvases();
+            updateGarbageBars();
+
+            spawnPiece();
+            spawnAiPiece();
+
+            isRunning = true;
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 500);
+
+            const speedMap = { 'EASY': 1000, 'NORMAL': 500, 'HARD': 150 };
+            if (aiLoop) clearInterval(aiLoop);
+            aiLoop = setInterval(updateHeuristicAi, speedMap[diff] || 500);
+
+            drawCanvas('p1-canvas', p1Board, activePiece);
+            drawCanvas('p2-canvas', p2Board, aiPiece);
+        }
+
+        function retryVsGame() {
+            document.getElementById('vs-result-overlay').classList.add('hidden');
+            if (currentMode === 'AI') startAiGame(aiDiff);
+            else startOnlineMatchmaking();
+        }
+
+        function showVsResult(isVictory) {
+            stopGame();
+            const overlay = document.getElementById('vs-result-overlay');
+            const title = document.getElementById('vs-result-title');
+            const desc = document.getElementById('vs-result-desc');
+
+            overlay.classList.remove('hidden');
+            if (isVictory) {
+                title.innerText = "VICTORY";
+                title.className = "text-2xl sm:text-3xl font-arcade tracking-wider text-yellow-400 neon-text-yellow";
+                desc.innerText = "YOU DEFEATED THE OPPONENT!";
+            } else {
+                title.innerText = "DEFEAT";
+                title.className = "text-2xl sm:text-3xl font-arcade tracking-wider text-red-500 neon-text-yellow";
+                desc.innerText = "YOUR BOARD KNOCKED OUT!";
+            }
+        }
+
+        function spawnAiPiece() {
+            if (p2GarbageQueue > 0) {
+                applyGarbageLines(p2Board, p2GarbageQueue);
+                p2GarbageQueue = 0;
+                updateGarbageBars();
+            }
+
+            const type = getNextFromBag(p2Bag);
+            aiPiece = createPiece(type);
+
+            if (checkCollision(p2Board, aiPiece.x, aiPiece.y, aiPiece.shape)) {
+                showVsResult(true);
+            }
+        }
+
+        function evaluateBoard(boardState) {
+            let aggregateHeight = 0, holes = 0, bumpiness = 0, completeLines = 0;
+            let colHeights = Array(COLS).fill(0);
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r < ROWS; r++) {
+                    if (boardState[r][c] !== 0) { colHeights[c] = ROWS - r; break; }
+                }
+            }
+            for (let c = 0; c < COLS; c++) aggregateHeight += colHeights[c];
+            for (let c = 0; c < COLS - 1; c++) bumpiness += Math.abs(colHeights[c] - colHeights[c + 1]);
+
+            for (let c = 0; c < COLS; c++) {
+                let blockFound = false;
+                for (let r = 0; r < ROWS; r++) {
+                    if (boardState[r][c] !== 0) blockFound = true;
+                    else if (blockFound && boardState[r][c] === 0) holes++;
+                }
+            }
+            for (let r = 0; r < ROWS; r++) {
+                if (boardState[r].every(cell => cell !== 0)) completeLines++;
+            }
+            return (completeLines * 500) - (holes * 120) - (aggregateHeight * 5) - (bumpiness * 10);
+        }
+
+        function updateHeuristicAi() {
+            if (!aiPiece || !isRunning) return;
+
+            let bestScore = -Infinity;
+            let bestX = aiPiece.x;
+            let bestShape = aiPiece.shape;
+
+            let currentRot = aiPiece.shape;
+            for (let rot = 0; rot < 4; rot++) {
+                for (let x = -2; x < COLS; x++) {
+                    if (!checkCollision(p2Board, x, 0, currentRot)) {
+                        let y = 0;
+                        while (!checkCollision(p2Board, x, y + 1, currentRot)) y++;
+                        
+                        let tempBoard = p2Board.map(row => [...row]);
+                        currentRot.forEach((row, r) => {
+                            row.forEach((val, c) => { if (val) tempBoard[y + r][x + c] = aiPiece.color; });
+                        });
+
+                        let score = evaluateBoard(tempBoard);
+                        if (aiDiff === 'EASY') score += (Math.random() * 200 - 100);
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestX = x;
+                            bestShape = currentRot;
+                        }
+                    }
+                }
+                currentRot = currentRot[0].map((_, idx) => currentRot.map(row => row[idx]).reverse());
+            }
+
+            aiPiece.shape = bestShape;
+            aiPiece.x = bestX;
+            let finalY = 0;
+            while (!checkCollision(p2Board, aiPiece.x, finalY + 1, aiPiece.shape)) finalY++;
+            aiPiece.y = finalY;
+
+            aiPiece.shape.forEach((row, r) => {
+                row.forEach((value, c) => {
+                    if (value) p2Board[aiPiece.y + r][aiPiece.x + c] = aiPiece.color;
+                });
+            });
+            clearLines(p2Board, false);
+            spawnAiPiece();
+            drawCanvas('p2-canvas', p2Board, aiPiece);
+        }
+
+        function stopGame() {
+            isRunning = false;
+            isMatched = false;
+            clearLockDelay();
+            if (gameLoop) clearInterval(gameLoop);
+            if (aiLoop) clearInterval(aiLoop);
+            if (onlinePingTimer) clearInterval(onlinePingTimer);
+            if (peerConn) {
+                peerConn.close();
+                peerConn = null;
+            }
+            if (broadChannel) {
+                broadChannel.close();
+                broadChannel = null;
+            }
+            if (matchmakingSocket) {
+                try { matchmakingSocket.send(JSON.stringify({ type: 'cancel' })); } catch (_) {}
+                try { matchmakingSocket.close(); } catch (_) {}
+                matchmakingSocket = null;
+            }
+        }
+
+        function handleSingleAction(code) {
+            if (!isRunning || !activePiece) return;
+            
+            if (code === keyBinds.left) {
+                if (!checkCollision(p1Board, activePiece.x - 1, activePiece.y, activePiece.shape)) {
+                    activePiece.x--;
+                    p1LastMoveWasRotate = false;
+                    if (lockResetCount < MAX_LOCK_RESETS) { lockResetCount++; clearLockDelay(); }
+                }
+            } else if (code === keyBinds.right) {
+                if (!checkCollision(p1Board, activePiece.x + 1, activePiece.y, activePiece.shape)) {
+                    activePiece.x++;
+                    p1LastMoveWasRotate = false;
+                    if (lockResetCount < MAX_LOCK_RESETS) { lockResetCount++; clearLockDelay(); }
+                }
+            } else if (code === keyBinds.softDrop) {
+                if (!checkCollision(p1Board, activePiece.x, activePiece.y + 1, activePiece.shape)) {
+                    activePiece.y++;
+                    p1LastMoveWasRotate = false;
+                    clearLockDelay();
+                } else {
+                    if (!lockDelayTimer) {
+                        lockDelayTimer = setTimeout(() => {
+                            if (checkCollision(p1Board, activePiece.x, activePiece.y + 1, activePiece.shape)) {
+                                mergePiece();
+                            }
+                        }, LOCK_DELAY_MS);
+                    }
+                }
+            } else if (code === keyBinds.hardDrop) {
+                while (!checkCollision(p1Board, activePiece.x, activePiece.y + 1, activePiece.shape)) {
+                    activePiece.y++;
+                }
+                mergePiece();
+            } else if (code === keyBinds.rotCW) {
+                rotateSrs(activePiece, 1, p1Board);
+            } else if (code === keyBinds.rotCCW) {
+                rotateSrs(activePiece, -1, p1Board);
+            } else if (code === keyBinds.hold) {
+                holdPiece();
+            }
+
+            if (currentMode === 'SOLO') drawCanvas('solo-canvas', p1Board, activePiece);
+            else drawCanvas('p1-canvas', p1Board, activePiece);
+
+            broadcastMyState();
+        }
+
+        // --- ONLINE MATCHMAKING ---
+        function setMatchmakingMessage(message) {
+            const status = document.getElementById('matchmaking-status');
+            if (!status) return;
+            const label = status.querySelector('[data-matchmaking-label]');
+            if (label) label.textContent = message;
+        }
+
+        function showMatchmakingUI(searching) {
+            const btn = document.getElementById('btn-find-match');
+            const status = document.getElementById('matchmaking-status');
+            if (btn) btn.classList.toggle('hidden', searching);
+            if (status) status.classList.toggle('hidden', !searching);
+        }
+
+        function startOnlineMatchmaking() {
+            currentMode = 'ONLINE';
+            isMatched = false;
+            showScreen('screen-online-lobby');
+            showMatchmakingUI(true);
+            setMatchmakingMessage('マッチングサーバーに接続中...');
+
+            if (!myPeerId || !peer || peer.destroyed) {
+                setMatchmakingMessage('通信IDを準備中です。数秒後にもう一度押してください。');
+                showMatchmakingUI(false);
+                return;
+            }
+            if (!MATCHMAKING_SERVER_URL || MATCHMAKING_SERVER_URL.includes('YOUR-MATCHMAKING-SERVER')) {
+                setMatchmakingMessage('マッチングサーバーURLが未設定です。server.jsをデプロイしてURLを設定してください。');
+                showMatchmakingUI(false);
+                return;
+            }
+
+            if (matchmakingSocket) {
+                try { matchmakingSocket.close(); } catch (_) {}
+                matchmakingSocket = null;
+            }
+            try {
+                matchmakingSocket = new WebSocket(MATCHMAKING_SERVER_URL);
+            } catch (err) {
+                setMatchmakingMessage('マッチングサーバーに接続できません。');
+                showMatchmakingUI(false);
+                return;
+            }
+
+            matchmakingSocket.onopen = () => {
+                setMatchmakingMessage('対戦相手を探しています...');
+                matchmakingSocket.send(JSON.stringify({ type: 'join', peerId: myPeerId }));
+            };
+            matchmakingSocket.onmessage = (event) => {
+                let data;
+                try { data = JSON.parse(event.data); } catch (_) { return; }
+                if (data.type === 'waiting') {
+                    setMatchmakingMessage('対戦相手を探しています...');
+                } else if (data.type === 'matched') {
+                    setMatchmakingMessage('相手が見つかりました。接続中...');
+                    // 二重接続を避けるため、サーバーが指定した片方だけが発信する。
+                    if (data.connect && data.peerId) {
+                        if (peerConn) { try { peerConn.close(); } catch (_) {} }
+                        peerConn = peer.connect(data.peerId, { reliable: true });
+                        setupPeerEvents();
+                    }
+                } else if (data.type === 'opponent-left') {
+                    if (isRunning) showVsResult(true);
+                    else {
+                        setMatchmakingMessage('相手が退出しました。もう一度検索してください。');
+                        showMatchmakingUI(false);
+                    }
+                } else if (data.type === 'error') {
+                    setMatchmakingMessage(data.message || 'マッチングエラーが発生しました。');
+                    showMatchmakingUI(false);
+                }
+            };
+            matchmakingSocket.onerror = () => {
+                setMatchmakingMessage('サーバーに接続できません。URLとサーバーの状態を確認してください。');
+                showMatchmakingUI(false);
+            };
+            matchmakingSocket.onclose = () => {
+                // 対戦中は切断通知のために接続を維持する想定。
+            };
+        }
+
+        function resetPrivateMatchState() {
+            if (privateCountdownTimer) clearInterval(privateCountdownTimer);
+            privateCountdownTimer = null;
+            privateMatchMode = false;
+            privateRoomHost = false;
+            privateLocalReady = false;
+            privateRemoteReady = false;
+            privateCountdownStarted = false;
+        }
+
+        function createPrivateRoom() {
+            if (!peer || !myPeerId || peer.destroyed) {
+                alert('通信IDを準備中です。数秒待ってからもう一度お試しください。');
+                return;
+            }
+            if (peerConn) { try { peerConn.close(); } catch (_) {} }
+            peerConn = null;
+            resetPrivateMatchState();
+            privateMatchMode = true;
+            privateRoomHost = true;
+            currentMode = 'ONLINE';
+            isMatched = false;
+            closeModal('modal-private-match');
+            showScreen('screen-online-lobby');
+            showMatchmakingUI(true);
+            setMatchmakingMessage('部屋を作成しました。上のIDを友達に教えて、参加するまで待ってください。');
+        }
+
+        function joinPrivateRoom() {
+            const targetPeerId = document.getElementById('private-room-key')?.value.trim();
+            if (!targetPeerId) return alert('部屋を作った友達のIDを入力してください');
+            if (!peer || !myPeerId) return alert('通信IDを準備中です。数秒待ってから再度お試しください。');
+            if (targetPeerId === myPeerId) return alert('自分自身のIDには接続できません。');
+            if (peerConn) { try { peerConn.close(); } catch (_) {} }
+            peerConn = null;
+            resetPrivateMatchState();
+            privateMatchMode = true;
+            privateRoomHost = false;
+            currentMode = 'ONLINE';
+            isMatched = false;
+            closeModal('modal-private-match');
+            showScreen('screen-online-lobby');
+            showMatchmakingUI(true);
+            setMatchmakingMessage('プライベートルームに接続しています...');
+
+            peerConn = peer.connect(targetPeerId, { reliable: true });
+            setupPeerEvents();
+        }
+
+        function startPrivateCountdown(startAt) {
+            if (privateCountdownStarted) return;
+            privateCountdownStarted = true;
+            showMatchmakingUI(true);
+            if (privateCountdownTimer) clearInterval(privateCountdownTimer);
+            const tick = () => {
+                const remaining = Math.max(0, startAt - Date.now());
+                const seconds = Math.ceil(remaining / 1000);
+                if (remaining <= 0) {
+                    clearInterval(privateCountdownTimer);
+                    privateCountdownTimer = null;
+                    startMatchedOnlineGame();
+                } else {
+                    setMatchmakingMessage(`対戦開始まで ${seconds} 秒...`);
+                }
+            };
+            tick();
+            privateCountdownTimer = setInterval(tick, 100);
+        }
+
+        function startMatchedOnlineGame() {
+            isMatched = true;
+            if (privateCountdownTimer) clearInterval(privateCountdownTimer);
+            privateCountdownTimer = null;
+            privateMatchMode = false;
+            if (onlinePingTimer) clearInterval(onlinePingTimer);
+
+            const btn = document.getElementById('btn-find-match');
+            const status = document.getElementById('matchmaking-status');
+            if (btn) btn.classList.remove('hidden');
+            if (status) status.classList.add('hidden');
+
+            document.getElementById('p1-label').innerText = "YOU (P1)";
+            document.getElementById('p2-label').innerText = "REAL PLAYER (P2)";
+            document.getElementById('vs-result-overlay').classList.add('hidden');
+            // showScreen() calls stopGame(), which would close the live PeerJS connection.
+            // Switch screens directly when an online match is ready.
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+            document.getElementById('screen-vs').classList.remove('hidden');
+
+            p1Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            p2Board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            p1Bag = []; p2Bag = [];
+            p1GarbageQueue = 0; p2GarbageQueue = 0;
+            p1SingleLineStash = 0; p2SingleLineStash = 0;
+            p1ComboCount = 0; aiComboCount = 0;
+            p1B2bActive = false; aiB2bActive = false;
+            holdPieceType = null; p2HoldPieceType = null;
+            canHold = true; clearLockDelay();
+            drawHoldCanvases();
+            drawP2HoldCanvas();
+            updateGarbageBars();
+
+            spawnPiece();
+            isRunning = true;
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 500);
+
+            broadcastMyState();
+        }
+
+        function cancelMatchmaking() {
+            stopGame();
+            resetPrivateMatchState();
+            if (peerConn) { try { peerConn.close(); } catch (_) {} }
+            peerConn = null;
+            showMatchmakingUI(false);
+            setMatchmakingMessage('SEARCHING REAL PLAYER...');
+        }
+
+        function saveScore(newScore) {
+            if (newScore <= 0) return;
+            let scores = JSON.parse(localStorage.getItem('banana_solo_scores')) || [];
+            scores.push({ date: new Date().toLocaleDateString(), score: newScore });
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 100);
+            localStorage.setItem('banana_solo_scores', JSON.stringify(scores));
+        }
+
+        function renderLeaderboard(type) {
+            const list = document.getElementById('leaderboard-list');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            const btnSolo = document.getElementById('tab-lb-solo');
+            const btnOnline = document.getElementById('tab-lb-online');
+            
+            if (type === 'solo') {
+                btnSolo.className = "flex-1 py-1 bg-yellow-500 text-slate-950 font-bold rounded text-xs";
+                btnOnline.className = "flex-1 py-1 bg-slate-800 text-slate-400 font-bold rounded text-xs";
+                
+                const scores = JSON.parse(localStorage.getItem('banana_solo_scores')) || [];
+                if (scores.length === 0) {
+                    list.innerHTML = '<div class="text-center text-slate-500 py-4">プレイ記録がまだありません</div>';
+                } else {
+                    scores.forEach((item, idx) => {
+                        list.innerHTML += `
+                            <div class="flex justify-between items-center p-1.5 bg-slate-900 rounded border border-slate-800">
+                                <span class="font-bold text-yellow-400">#${idx + 1} PLAYER (${item.date})</span>
+                                <span class="text-cyan-400 font-mono font-bold">${item.score.toLocaleString()} PTS</span>
+                            </div>
+                        `;
+                    });
+                }
+            } else {
+                btnOnline.className = "flex-1 py-1 bg-cyan-500 text-slate-950 font-bold rounded text-xs";
+                btnSolo.className = "flex-1 py-1 bg-slate-800 text-slate-400 font-bold rounded text-xs";
+                
+                const userRating = parseInt(localStorage.getItem('banana_rating') || '1500');
+                list.innerHTML = `
+                    <div class="flex justify-between items-center p-1.5 bg-slate-900 rounded border border-slate-800">
+                        <span class="font-bold text-cyan-400">#1 YOU</span>
+                        <span class="text-yellow-400 font-mono font-bold">${userRating} RATINGS</span>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
